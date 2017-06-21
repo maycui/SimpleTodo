@@ -1,5 +1,6 @@
 package com.example.mayc.simpletodo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -19,6 +20,12 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    //numeric code to identify the edit activity
+    public final static int EDIT_REQUEST_CODE = 20;
+    //keys used for passing data between activities
+    public final static String ITEM_TEXT = "itemText";
+    public final static String ITEM_POSITION = "itemPosition";
+
     ArrayList<String> items;
     ArrayAdapter<String> itemsAdapter;
     ListView lvItems;
@@ -34,8 +41,8 @@ public class MainActivity extends AppCompatActivity {
         //three arguments: reference to activity, type of item adapter will wrap, item list
         itemsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items);
         //reference to list view
-        lvItems = (ListView) findViewById(R.id.lvitems); // different R classes
-        lvItems.setAdapter(itemsAdapter); //wire something??
+        lvItems = (ListView) findViewById(R.id.lvitems);
+        lvItems.setAdapter(itemsAdapter);
 
         //mock data
         //items.add("First item");
@@ -49,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         EditText etNewItem = (EditText) findViewById(R.id.etNewItem);
         // get value of edittext as a string
         String itemText = etNewItem.getText().toString();
-        //add it to to do list ; add to adapter directly
+        //add it to to do list - add to adapter directly
         itemsAdapter.add(itemText);
         //clear field for add new item
         etNewItem.setText("");
@@ -73,6 +80,43 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+        //set up item listener for edit (Regular click)
+        lvItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                //create the new activity
+                Intent i = new Intent(MainActivity.this, EditItemActivity.class);
+                // pass data being edited to activity
+                i.putExtra(ITEM_TEXT, items.get(position));
+                i.putExtra(ITEM_POSITION, position);
+                // display the activity
+                startActivityForResult(i, EDIT_REQUEST_CODE);
+            }
+        });
+
+    }
+
+    //handle results from edit activity
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        //check result is completed
+        if (resultCode == RESULT_OK && requestCode == EDIT_REQUEST_CODE) {
+            //extract updated item text from result intent extras
+            String updatedItem = data.getExtras().getString(ITEM_TEXT);
+            //extra original position of edited item
+            int position = data.getExtras().getInt(ITEM_POSITION);
+            // update the model with the new item text at the edited position
+            items.set(position, updatedItem);
+            //notify the adapter that the model changed
+            itemsAdapter.notifyDataSetChanged();
+            // persist the changed model
+            writeItems();
+            //notify
+            Toast.makeText(this, "Item updated successfully", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private File getDataFile() {
